@@ -604,7 +604,351 @@ git_list_projects() {
     read -r "?⏸️  Presiona cualquier tecla para continuar..."
 }
 
+# Función de Merge Inteligente
+git_merge_automation() {
+    # Configuración inicial
+    local rama_actual="" rama_destino="" proyecto="" auto_resolve=false
+    local critical_error=0 ruta_proyecto=""
+    
+    # Función de ayuda
+    show_merge_help() {
+        echo "🔄 Git Merge Automation - Ayuda"
+        echo "=========================================="
+        echo "Uso: gitm <rama_actual> <proyecto> <rama_destino> [OPCIONES]"
+        echo ""
+        echo "Parámetros obligatorios:"
+        echo "  <rama_actual>   - Rama donde estás trabajando"
+        echo "  <proyecto>      - Nombre del proyecto"
+        echo "  <rama_destino>  - Rama a la que quieres mergear"
+        echo ""
+        echo "Opciones disponibles:"
+        echo "  -a, --auto      - Intentar resolución automática de conflictos"
+        echo "  -f, --force     - Forzar merge (no recomendado)"
+        echo "  -s, --squash    - Hacer squash merge"
+        echo ""
+        echo "Ejemplos:"
+        echo "  gitm feature-branch app main"
+        echo "  gitm develop api main --auto"
+        echo "  gitm hotfix web staging --squash"
+    }
+
+    # Función de manejo de errores consistente
+    handle_merge_error() {
+        local message="$1" level="$2" recommendation="$3"
+        
+        case "$level" in
+            "critical")
+                echo "❌ ERROR CRÍTICO EN MERGE: $message"
+                [[ -n "$recommendation" ]] && echo "💡 Recomendación: $recommendation"
+                critical_error=1
+                return 1
+                ;;
+            "warning")
+                echo "⚠️  ADVERTENCIA EN MERGE: $message"
+                [[ -n "$recommendation" ]] && echo "💡 Sugerencia: $recommendation"
+                return 0
+                ;;
+            "info")
+                echo "ℹ️  INFORMACIÓN DE MERGE: $message"
+                return 0
+                ;;
+            *)
+                echo "❌ Error en merge: $message"
+                return 1
+                ;;
+        esac
+    }
+
+    # Función para verificar pre-condiciones del merge
+    check_merge_prerequisites() {
+        echo "🔍 Verificando pre-condiciones..."
+        
+        # Verificar que estamos en la rama correcta
+        local current_branch=$(git symbolic-ref --short HEAD)
+        if [[ "$current_branch" != "$rama_actual" ]]; then
+            handle_merge_error "No estás en la rama '$rama_actual'" "critical" \
+                "Cambia a la rama con: git checkout $rama_actual"
+            return 1
+        fi
+
+        # Verificar que el working directory está clean
+        if ! git diff-index --quiet HEAD --; then
+            handle_merge_error "Hay cambios sin commit en el working directory" "critical" \
+                "Haz commit de tus cambios o usa git stash antes del merge"
+            return 1
+        fi
+
+        # Verificar que la rama destino existe
+        if ! git show-ref --verify --quiet "refs/heads/$rama_destino"; then
+            handle_merge_error "La rama destino '$rama_destino' no existe" "critical" \
+                "Verifica el nombre de la rama con: git branch -a"
+            return 1
+        fi
+
+        # Verificar que la rama actual existe
+        if ! git show-ref --verify --quiet "refs/heads/$rama_actual"; then
+            handle_merge_error "La rama actual '$rama_actual' no existe" "critical" \
+                "Verifica el nombre de la rama con: git branch -a"
+            return 1
+        fi
+
+        echo "✅ Pre-condiciones verificadas correctamente"
+        return 0
+    }
+
+    # Función para mostrar diferencias antes del merge
+    show_merge_preview() {
+        echo "📊 VISTA PREVIA DEL MERGE"
+        echo "=========================="
+        
+        # Mostrar commits que se van a mergear
+        local commit_count=$(git log --oneline "$rama_actual".."$rama_destino" | wc -l)
+        echo "📈 Commits a mergear: $commit_count"
+        
+        if [[ $commit_count -gt 0 ]]; then
+            echo "📜 Últimos commits en $rama_actual:"
+            git log --oneline -5 "$rama_actual"
+            echo ""
+            echo "📜 Últimos commits en $rama_destino:"
+            git log --oneline -5 "$rama_destino"
+        fi
+
+        # Mostrar archivos modificados
+        echo ""
+        echo "📁 Archivos que podrían tener conflictos:"
+        git diff --name-only "$rama_actual"..."$rama_destino" | head -10
+    }
+
+    # Función para confirmación del usuario
+    get_user_confirmation() {
+        echo ""
+        echo "🚨 ¿Estás seguro de que quieres mergear $rama_actual en $rama_destino?"
+        echo "   Esta operación puede modificar significativamente el repositorio."
+        echo ""
+        read -r "?🤔 Confirma la operación (sí/no): " confirmation
+        
+        case "$confirmation" in
+            [sS][iI]|[sS]|[yY][eE][sS]|[yY])
+                echo "✅ Confirmado. Procediendo con el merge..."
+                return 0
+                ;;
+            *)
+                handle_merge_error "Merge cancelado por el usuario" "info"
+                return 1
+                ;;
+        esac
+    }
+
+    # Función para resolución automática de conflictos simples
+    auto_resolve_conflicts() {
+        echo "🛠️  Intentando resolución automática de conflictos..."
+        
+        local resolved_files=0
+        local conflict_files=$(git diff --name-only --diff-filter=U)
+        
+        for file in $conflict_files; do
+            echo "🔧 Procesando: $file"
+            
+            # Intentar estrategias de resolución automática
+            if [[ $file == *".json"* || $file == *".lock"* ]]; then
+                # Para archivos JSON y lock files, usar la versión de la rama actual
+                git checkout --ours "$file"
+                git add "$file"
+                ((resolved_files++))
+                echo "   ✅ Resuelto usando versión actual (ours)"
+            elif [[ $file == *"package.json"* || $file == *"composer.json"* ]]; then
+                # Para archivos de dependencias, es mejor abortar
+                echo "   ⚠️  Archivo de dependencias - requiere intervención manual"
+            else
+                # Para otros archivos, intentar con merge tool o dejar para manual
+                echo "   ℹ️  Requiere intervención manual"
+            fi
+        done
+
+        if [[ $resolved_files -gt 0 ]]; then
+            echo "✅ $resolved_files conflictos resueltos automáticamente"
+            return 0
+        else
+            echo "❌ No se pudieron resolver conflictos automáticamente"
+            return 1
+        fi
+    }
+
+    # Función principal de merge
+    perform_merge() {
+        echo "🔄 INICIANDO PROCESO DE MERGE"
+        echo "=============================="
+        
+        # Actualizar ambas ramas
+        echo "📥 Actualizando ramas remotas..."
+        git fetch origin "$rama_actual" || handle_merge_error "Error al fetch $rama_actual" "warning"
+        git fetch origin "$rama_destino" || handle_merge_error "Error al fetch $rama_destino" "warning"
+
+        # Cambiar a rama destino
+        echo "🌿 Cambiando a rama destino: $rama_destino"
+        if ! git checkout "$rama_destino"; then
+            handle_merge_error "No se pudo cambiar a la rama destino" "critical"
+            return 1
+        fi
+
+        # Actualizar rama destino
+        echo "📥 Actualizando rama destino..."
+        if ! git pull origin "$rama_destino"; then
+            handle_merge_error "Error al actualizar rama destino" "critical"
+            return 1
+        fi
+
+        # Ejecutar merge
+        echo "🔀 Ejecutando merge..."
+        local merge_command="git merge $rama_actual"
+        
+        if [[ "$1" == "squash" ]]; then
+            merge_command="git merge --squash $rama_actual"
+            echo "📦 Usando squash merge"
+        fi
+        
+        if ! eval "$merge_command"; then
+            echo "❌ Merge falló - Conflictos detectados"
+            
+            # Mostrar archivos en conflicto
+            local conflict_files=$(git diff --name-only --diff-filter=U)
+            echo "📋 Archivos en conflicto:"
+            echo "$conflict_files"
+            
+            # Intentar resolución automática si está habilitada
+            if [[ "$auto_resolve" == "true" ]]; then
+                if auto_resolve_conflicts; then
+                    echo "✅ Conflictos resueltos automáticamente"
+                    return 0
+                fi
+            fi
+            
+            # Guía para resolución manual
+            echo ""
+            echo "🛠️  RESOLUCIÓN MANUAL REQUERIDA"
+            echo "==============================="
+            echo "1. Edita los archivos en conflicto marcados con <<<<<<<, =======, >>>>>>>"
+            echo "2. Para cada archivo, después de resolver: git add <archivo>"
+            echo "3. Cuando termines: git commit -m 'Resuelve conflictos de merge'"
+            echo "4. O si quieres abortar: git merge --abort"
+            echo ""
+            echo "💡 Usa 'git status' para ver el estado actual"
+            
+            handle_merge_error "Merge requiere resolución manual de conflictos" "critical"
+            return 1
+        fi
+
+        echo "✅ Merge completado exitosamente"
+        return 0
+    }
+
+    # Validación de parámetros
+    if [[ $# -lt 3 ]]; then
+        show_merge_help
+        return 1
+    fi
+
+    # Procesar parámetros
+    rama_actual="$1"
+    proyecto="$2"
+    rama_destino="$3"
+    shift 3
+
+    # Procesar opciones
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -a|--auto)
+                auto_resolve=true
+                ;;
+            -f|--force)
+                # No implementado por seguridad, pero reservado para futuro
+                echo "⚠️  Opción --force no implementada por seguridad"
+                ;;
+            -s|--squash)
+                local squash_merge=true
+                ;;
+            -h|--help)
+                show_merge_help
+                return 0
+                ;;
+            *)
+                handle_merge_error "Opción no reconocida: $1" "critical"
+                show_merge_help
+                return 1
+                ;;
+        esac
+        shift
+    done
+
+    ruta_proyecto="${GIT_BASE_PATH}/${rama_actual}/${proyecto}"
+
+    echo "🔄 INICIANDO MERGE AUTOMATIZADO"
+    echo "==============================="
+    echo "📋 Proyecto: $proyecto"
+    echo "🌿 Rama origen: $rama_actual"
+    echo "🎯 Rama destino: $rama_destino"
+    echo "🤖 Resolución automática: $auto_resolve"
+    echo "📁 Ruta: $ruta_proyecto"
+    echo ""
+
+    # Verificar existencia del proyecto
+    if [[ ! -d "$ruta_proyecto" ]]; then
+        handle_merge_error "Directorio no encontrado" "critical" \
+            "Verifica: \n- Ruta base: $GIT_BASE_PATH \n- Rama: $rama_actual \n- Proyecto: $proyecto"
+        read -r "?⏸️  Presiona cualquier tecla para continuar..."
+        return 1
+    fi
+
+    # Navegar al proyecto
+    cd "$ruta_proyecto" || {
+        handle_merge_error "No se pudo acceder al directorio" "critical" "Verifica los permisos"
+        read -r "?⏸️  Presiona cualquier tecla para continuar..."
+        return 1
+    }
+
+    # Verificar que es repo git
+    if [[ ! -d ".git" ]]; then
+        handle_merge_error "No es un repositorio Git" "critical" "Inicializa con: git init"
+        read -r "?⏸️  Presiona cualquier tecla para continuar..."
+        return 1
+    fi
+
+    # Ejecutar flujo de merge
+    if ! check_merge_prerequisites; then
+        read -r "?⏸️  Presiona cualquier tecla para continuar..."
+        return 1
+    fi
+
+    show_merge_preview
+
+    if ! get_user_confirmation; then
+        read -r "?⏸️  Presiona cualquier tecla para continuar..."
+        return 1
+    fi
+
+    if perform_merge $squash_merge; then
+        echo ""
+        echo "✅ ¡MERGE COMPLETADO EXITOSAMENTE!"
+        echo "=================================="
+        echo "🌿 Rama origen: $rama_actual"
+        echo "🎯 Rama destino: $rama_destino"
+        echo "📋 Proyecto: $proyecto"
+        echo "🕒 Hora: $(date +'%H:%M:%S')"
+        echo ""
+        echo "🎉 ¡Merge finalizado! Presiona cualquier tecla para continuar..."
+    else
+        echo ""
+        echo "❌ MERGE NO COMPLETADO"
+        echo "======================"
+        echo "💡 Revisa los conflictos y completa el merge manualmente"
+    fi
+
+    read -r "?⏸️  Presiona cualquier tecla para continuar..."
+    return $critical_error
+}
+
 # Aliases para acceso rápido
 alias gita='git_automation'
 alias gitp='git_push_automation'
+alias gitm='git_merge_automation'
 alias git-ls='git_list_projects'
