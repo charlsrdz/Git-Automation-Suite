@@ -8,7 +8,9 @@ Una suite de herramientas de automatización Git diseñada para mejorar la produ
 Automatización inteligente de commits y push con análisis automático de cambios.
 
 **Comandos disponibles:**
+```bash
 gitp <rama> <proyecto> [OPCIONES]
+```
 
 **Opciones:**
 - -d, --diff [TIPO] - Commit automático con tipo específico
@@ -23,15 +25,19 @@ gitp <rama> <proyecto> [OPCIONES]
 - 🔄 refactor - Reestructuración de código
 
 **Ejemplos:**
+```bash
 gitp qa commons -d fix
 gitp main app -d feat -m "Nueva feature de usuario"
 gitp develop api -d fix -b staging
+```
 
 ### 🛠️ Git Automation (gita)
 Comandos Git esenciales con interfaz unificada y manejo de errores mejorado.
 
 **Comandos disponibles:**
+```bash
 gita <rama> <proyecto> [COMANDO] [ARGUMENTO]
+```
 
 **Comandos soportados:**
 - status - Estado del repositorio
@@ -44,17 +50,21 @@ gita <rama> <proyecto> [COMANDO] [ARGUMENTO]
 - fetch - Obtener cambios remotos
 
 **Ejemplos:**
+```bash
 gita main app status
 gita develop api log
 gita qa commons checkout-b nueva-feature
+```
 
 ### 📁 Git List Projects (gitlp)
 Explorador de proyectos y ramas disponibles.
 
 **Uso:**
+```bash
 gitlp          # Listar todas las ramas
 gitlp main     # Proyectos en rama main
 gitlp develop  # Proyectos en rama develop
+```
 
 ## 🚀 Instalación
 
@@ -66,19 +76,28 @@ gitlp develop  # Proyectos en rama develop
 ### Configuración
 
 1. **Clona el repositorio:**
+```bash
 git clone https://github.com/tu-usuario/git-automation-suite.git
 cd git-automation-suite
+```
 
 2. **Configura la variable de entorno:**
+```bash
 echo 'export GIT_BASE_PATH="$HOME/projects"' >> ~/.bashrc
+```
 
 3. **Instala los aliases:**
+```bash
 echo "source $(pwd)/git-automation.sh" >> ~/.bashrc
+``` 
 
 4. **Recarga la configuración:**
+```bash
 source ~/.bashrc
+```
 
 ### Estructura de Directorios
+```bash
 $GIT_BASE_PATH/
 ├── main/
 │   ├── app/
@@ -90,30 +109,38 @@ $GIT_BASE_PATH/
 └── qa/
     ├── app/
     └── commons/
-
+``` 
 ## 📖 Uso Avanzado
 
 ### Flujo de Trabajo Típico
 
 1. **Explorar proyectos disponibles:**
+```bash
 gitlp
 gitlp main
+``` 
 
 2. **Trabajar en un proyecto:**
+```bash
 gita main app status
 gita main app pull
+```
 
 3. **Hacer commit y push:**
+```bash
 gitp main app -d feat -m "Nueva funcionalidad"
 gitp develop api -d fix -b staging
+``` 
 
 ### Configuración Personalizada
 
 Puedes personalizar el comportamiento editando las variables en el script:
 # En git-automation.sh
+```bash
 export GIT_BASE_PATH="$HOME/my-projects"
 export DEFAULT_COMMIT_TYPE="feat"
 export AUTO_PUSH_ENABLED=true
+``` 
 
 ## 🛠️ Características Técnicas
 
