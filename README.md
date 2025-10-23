@@ -31,6 +31,90 @@ gitp main app -d feat -m "Nueva feature de usuario"
 gitp develop api -d fix -b staging
 ```
 
+## Ejemplo 1: Commit de Corrección (fix)
+```bash
+🔧 Correcciones (1 archivo, +15/-3 líneas)
+
+Archivos modificados:
+- src/auth.js (+12/-2)
+- config/database.js (+3/-1)
+```
+
+## Ejemplo 2: Commit de Nueva Funcionalidad (feat)
+```bash
+🚀 Nueva funcionalidad (3 archivos modificados)
+
+Archivos modificados:
+- components/UserProfile.js (+45/-8)
+- styles/user.css (+23/-2)
+- utils/helpers.js (+12/-1)
+``` 
+
+## Ejemplo 3: Commit de Documentación (docs)
+```bash
+📖 Documentación (2 archivos, +28/-0 líneas)
+
+Archivos modificados:
+- README.md (+20/-0)
+- docs/api.md (+8/-0)
+```
+
+## Ejemplo 4: Commit de Reestructuración (refactor)
+```bash
+🔄 Reestructuración (1 archivo, +67/-34 líneas)
+
+Archivos modificados:
+- services/apiService.js (+67/-34)
+```
+
+## Ejemplo 5: Commit de Corrección Urgente (hotfix)
+```bash
+🚨 Corrección urgente (2 archivos, +8/-4 líneas) - Parche de seguridad crítico
+
+Archivos modificados:
+- middleware/security.js (+5/-2)
+- config/env.js (+3/-2)
+```
+
+## Ejemplo 6: Commit con Descripción Personalizada
+```bash
+🔧 Correcciones (4 archivos modificados) - Mejoras en validación de formularios
+
+Archivos modificados:
+- components/FormValidator.js (+25/-10)
+- utils/validation.js (+18/-5)
+- tests/validation.test.js (+30/-2)
+- styles/forms.css (+8/-1)
+```
+
+## Ejemplo 7: Commit de Actualización General
+```bash
+📦 Actualización (5 archivos modificados)
+
+Archivos modificados:
+- package.json (+3/-1)
+- package-lock.json (+15/-0)
+- src/index.js (+2/-0)
+- config/app.js (+5/-2)
+- README.md (+3/-1)
+```
+
+## Ejemplo 8: Commit con Múltiples Archivos
+```bash
+🚀 Nueva funcionalidad (8 archivos modificados) - Sistema de notificaciones push
+
+Archivos modificados:
+- components/Notifications.js (+89/-12)
+- services/notificationService.js (+45/-8)
+- hooks/useNotifications.js (+32/-3)
+- styles/notifications.css (+28/-2)
+- utils/constants.js (+15/-0)
+- tests/notifications.test.js (+67/-5)
+- docs/notifications.md (+23/-0)
+- config/push.js (+18/-4)
+```
+---
+
 ### 🛠️ Git Automation (gita)
 Comandos Git esenciales con interfaz unificada y manejo de errores mejorado.
 
