@@ -1,6 +1,6 @@
 # Función de Automatización Git para ZSH con Oh My ZSH
 # Ruta base para todos los proyectos
-GIT_BASE_PATH="/home/lap140/git"
+GIT_BASE_PATH="$HOME/Git"
 
 git_push_automation() {
     # Configuración inicial
