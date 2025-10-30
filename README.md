@@ -161,7 +161,7 @@ gitlp develop  # Proyectos en rama develop
 
 1. **Clona el repositorio:**
 ```bash
-git clone https://github.com/tu-usuario/git-automation-suite.git
+git clone https://github.com/charlsrdz/Git-Automation-Suite.git
 cd git-automation-suite
 ```
 
